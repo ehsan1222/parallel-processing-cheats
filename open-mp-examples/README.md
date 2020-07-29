@@ -1,5 +1,5 @@
 Compile source file with command: 
-> gcc -fopenmp <filename.c>
+> gcc -fopenmp (filename.c)
 >
 > *Flags:*
 >
