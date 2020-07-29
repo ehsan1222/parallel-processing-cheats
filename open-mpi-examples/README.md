@@ -1,4 +1,4 @@
-##parallel programming with OPEN MPI
+## parallel programming with OPEN MPI
 
 * install openmpi library in ubuntu:
 
