@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <openmpi/mpi.h>
 
-int dijkstra(int source, int n, int arr[][n]);
+int bfs(int source, int n, int arr[][n]);
 void master();
 void slave();
 
@@ -95,7 +95,7 @@ void slave() {
     // run dijkstra in multiple source node
     for(i = start_index; i < finish_index; i++){
         // calculate maximun minimum path from source node
-        int current_max = dijkstra(i, n, arr);
+        int current_max = bfs(i, n, arr);
         if (current_max > max)
             max = current_max;
     }
@@ -106,34 +106,42 @@ void slave() {
     free(arr);
 }
 
-int dijkstra(int source, int n, int arr[][n]) {
+int bfs(int source, int n, int arr[][n]) {
     int i, j, k;
     int max = 0;
-    int shortest[n];
+    int distance[n];
+    int flag[n];
+    int queue[n];
 
     // initial max value in shortest path array
     for(i = 0; i < n; i++) {
-        shortest[i] = n + 1;
+        distance[i] = 0;
+        flag[i] = 0;
     }
 
-    shortest[source] = 0;
+    i = 0;
+    j = 1;
+    distance[source] = 0;
+    flag[source] = 1;
+    queue[i] = source;
 
-    // find shortest path from source to all nodes
-    for(k = 0; k < n; k++) {
-        for(i = 0; i < n; i++) {
-            for(j = 0; j < n; j++) {
-                int diff = shortest[i] + arr[i][j];
-                if(diff < shortest[j]) {
-                    shortest[j] = diff;
-                }
+    while (i < j){
+        int current = queue[i];
+        for(k = 0; k < n; k++) {
+            if ((arr[current][k] != n + 1) && (flag[k] == 0)){
+                flag[k] = 1;
+                distance[k] = distance[current] + 1;
+                queue[j] = k;
+                j++;
             }
         }
-    } 
+        i++;
+    }
 
     // find maximum shortest path
     for(i = 0; i < n; i++) {
-        if((shortest[i] < n + 1) && (shortest[i] > max)) 
-            max = shortest[i];
+        if(distance[i] > max) 
+            max = distance[i];
     }
 
     return max;
