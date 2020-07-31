@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <openmpi/mpi.h>
 
-int dijkstra(int source, int n, int m, int arr[][m]);
+int dijkstra(int source, int n, int arr[][n]);
 void master();
 void slave();
 
@@ -56,7 +56,7 @@ void master() {
     // send adjancy matrix
     MPI_Bcast(arr, (n * n), MPI_INT, 0, MPI_COMM_WORLD);
 
-    // get process count
+    // get number of processes
     MPI_Comm_size(MPI_COMM_WORLD, &prcnt);
 
     // receive max path from other processes
@@ -67,32 +67,46 @@ void master() {
     }
 
     printf("Diameter= %d\n", max);
+
+    free(arr);
 }
 
 void slave() {
-    int pridx, n;
-    
+    int pridx, prcnt, n, i;
+    int max = 0;
+
     // process id
     MPI_Comm_rank(MPI_COMM_WORLD, &pridx);
+    MPI_Comm_size(MPI_COMM_WORLD, &prcnt);
 
     // receive adjancy matrix size
     MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     int (*arr)[n] = malloc(sizeof(int[n][n]));
 
+    int start_index = ((pridx - 1) * n) / (prcnt - 1);
+    int finish_index = (pridx * n) / (prcnt - 1);
+
+    // printf("process %d, min=%d max=%d\n", pridx, start_index, finish_index);
+
     // receive adjancy matrix
     MPI_Bcast(arr, (n * n), MPI_INT, 0, MPI_COMM_WORLD);
 
-    int current_index = pridx - 1;
-    // calculate maximun minimum path from source node
-    int max = dijkstra(current_index, n, n, arr);
-
+    // run dijkstra in multiple source node
+    for(i = start_index; i < finish_index; i++){
+        // calculate maximun minimum path from source node
+        int current_max = dijkstra(i, n, arr);
+        if (current_max > max)
+            max = current_max;
+    }
 
     // send result to process 0
     MPI_Send(&max, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+
+    free(arr);
 }
 
-int dijkstra(int source, int n, int m, int arr[][m]) {
+int dijkstra(int source, int n, int arr[][n]) {
     int i, j, k;
     int max = 0;
     int shortest[n];
@@ -107,7 +121,7 @@ int dijkstra(int source, int n, int m, int arr[][m]) {
     // find shortest path from source to all nodes
     for(k = 0; k < n; k++) {
         for(i = 0; i < n; i++) {
-            for(j = 0; j < m; j++) {
+            for(j = 0; j < n; j++) {
                 int diff = shortest[i] + arr[i][j];
                 if(diff < shortest[j]) {
                     shortest[j] = diff;
@@ -118,7 +132,7 @@ int dijkstra(int source, int n, int m, int arr[][m]) {
 
     // find maximum shortest path
     for(i = 0; i < n; i++) {
-        if(shortest[i] > max) 
+        if((shortest[i] < n + 1) && (shortest[i] > max)) 
             max = shortest[i];
     }
 
